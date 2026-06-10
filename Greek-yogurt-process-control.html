@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dairy Process Control Tower</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
+            --border: #dcdde1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 { margin-bottom: 5px; color: #1e272e; }
+        p.subtitle { color: #7f8c8d; margin-top: 0; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 10px;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #2980b9; }
+
+        /* Alert System Styling */
+        .alert-box {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .alert-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        /* Logs Table */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th { background-color: #f8f9fa; }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-pass { background: #d4edda; color: #155724; }
+        .badge-fail { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Dairy Process Control Tower</h1>
+        <p class="subtitle">Real-time Equipment Variability & Quality Interlock System</p>
+    </header>
+
+    <div class="grid">
+        <div class="card">
+            <h2>⚙️ Operator Parameter Entry</h2>
+            
+            <div class="form-group">
+                <label for="equipment">Select Unit Operation / Equipment:</label>
+                <select id="equipment" onchange="updateDynamicFields()">
+                    <option value="storage">Raw Milk Reception & Storage Tanks</option>
+                    <option value="pasteurizer">Pasteurizers</option>
+                    <option value="homogenizer">Homogenizers</option>
+                    <option value="fermentation">Fermentation Tanks</option>
+                    <option value="cooling">Cooling Systems</option>
+                    <option value="separator">Centrifugal Separator</option>
+                </select>
+            </div>
+
+            <div id="dynamic-inputs"></div>
+
+            <button type="button" onclick="evaluateConditions()">Evaluate & Log Batch Data</button>
+        </div>
+
+        <div class="card">
+            <h2>🚨 Real-Time Security Interlock</h2>
+            
+            <div id="alert-zone">
+                <div class="alert-box alert-success" id="alert-pass">
+                    <strong>✅ Dynamic Thresholds Met:</strong> Conditions are optimal. Process consistency and product quality metrics are protected.
+                </div>
+                <div class="alert-box alert-danger" id="alert-fail-critical">
+                    <strong>🚨 CRITICAL SYSTEM FAILURE:</strong> Parameters dropped outside safe operational targets. Quality degraded or batch destruction required.
+                </div>
+            </div>
+
+            <div id="impact-analysis" style="margin-top: 20px; display: none;">
+                <h3>⚠️ Risk Assessment Profile</h3>
+                <p><strong>Impact on Process:</strong> <span id="process-impact" style="color: #c0392b;"></span></p>
+                <p><strong>Impact on Product Quality:</strong> <span id="product-impact" style="color: #c0392b;"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <h2>📋 Process Log History</h2>
+        <div class="table-wrapper">
+            <table id="log-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Equipment</th>
+                        <th>Parameters Recorded</th>
+                        <th>Status</th>
+                        <th>Interlock Action Taken</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Threshold Data Rules Engine based on your matrix
+    const equipmentRules = {
+        storage: {
+            title: "Raw Milk Reception & Storage Tanks",
+            fields: [
+                { id: "temp", label: "Cooling Temperature (°C)", type: "number", default: 4.0, step: 0.1 },
+                { id: "hours", label: "Storage Duration (Hours)", type: "number", default: 48 }
+            ],
+            validate: (data) => {
+                let issues = [];
+                if (data.temp > 4.0) issues.push("[TEMP ERROR] Low cooling efficiency (Target: 4°C). Risk of microbial growth.");
+                if (data.hours >= 72) issues.push("[TIME ERROR] Extended storage limit breached (Target: <72 hrs).");
+                
+                return {
+                    passed: issues.length === 0,
+                    errors: issues,
+                    processImpact: "Microbial expansion (>300,000 CFU/mL) & falling titratable acidity (<0.2% lactic acid).",
+                    productImpact: "Shortened shelf life, contamination risk, and decreased Greek yogurt protein content (<6%)."
+                };
+            }
+        },
+        pasteurizer: {
+            title: "Pasteurizers",
+            fields: [
+                { id: "pasteurTemp", label: "Pasteurization Temperature (°C)", type: "number", default: 88.0, step: 0.1 },
+                { id: "delta", label: "Temperature Delta between Vat Center/Coldest Milk (°C)", type: "number", default: 0.2, step: 0.1 }
+            ],
+            validate: (data) => {
+                let issues = [];
+                if (data.pasteurTemp < 85.0 || data.pasteurTemp > 90.0) {
+                    issues.push(`[TEMP ERROR] Temperature outside safe range: ${data.pasteurTemp}°C (Target: 85-90°C).`);
+                }
+                if (data.delta > 0.5) {
+                    issues.push(`[DELTA ERROR] Vat variation (${data.delta}°C) exceeds 0.5°C tolerance.`);
+                }
+                
+                return {
+                    passed: issues.length === 0,
+                    errors: issues,
+                    processImpact: "Incomplete pathogen destruction or thermal protein denaturation. Laboratory Pasteurized Count (LPC) likely >750 CFU/mL.",
+                    productImpact: "Severe biosafety contamination risk, cooked off-flavors, and ruined product shelf life."
+                };
+            }
+        },
+        homogenizer: {
+            title: "Homogenizers",
+            fields: [
+                { id: "pressure", label: "Pump Operating Pressure (Bar)", type: "number", default: 200 }
+            ],
+            validate: (data) => {
+                let issues = [];
+                if (data.pressure < 100 || data.pressure > 300) issues.push("[PRESSURE ERROR] Pump pressure variable outside 100-300 bar operating window.");
+                
+                return {
+                    passed: issues.length === 0,
+                    errors: issues,
+                    processImpact: "Inconsistent fat globule breakdown. Fails to reduce diameters below 2 µm.",
+                    productImpact: "Defective, non-uniform final yogurt texturing."
+                };
+            }
+        },
+        fermentation: {
+            title: "Fermentation Tanks",
+            fields: [
+                { id: "fermTemp", label: "Fermentation Operating Temperature (°C)", type: "number", default: 44.5, step: 0.1 },
+                { id: "agitation", label: "Agitation Speed (RPM)", type: "number", default: 15 },
+                { id: "ph", label: "Achieved pH value at Hour 6", type: "number", default: 4.5, step: 0.1 }
+            ],
+            validate: (data) => {
+                let issues = [];
+                if (data.fermTemp < 43.0 || data.fermTemp > 46.0) {
+                    issues.push(`[TEMP ERROR] Temperature outside optimal growth window: ${data.fermTemp}°C (Target: 43-46°C).`);
+                }
+                if (data.agitation > 20) {
+                    issues.push(`[AGITATION ERROR] Excessive shear force: ${data.agitation} RPM (Target: ≤20 RPM).`);
+                }
+                if (data.ph > 4.6) {
+                    issues.push("[pH ERROR] Acidification Failure: pH failed to drop to ≤ 4.6 within the 6-hour critical window.");
+                }
+                
+                return {
+                    passed: issues.length === 0,
+                    errors: issues,
+                    processImpact: "Uneven bacterial culture incubation, broken gel structure, and stalled lactic acid production.",
+                    productImpact: "CRITICAL: Fails FDA yogurt standards. Variations in flavor/viscosity. BATCH MUST BE DESTROYED."
+                };
+            }
+        },
+        cooling: {
+            title: "Cooling Systems",
+            fields: [
+                { id: "coolTemp", label: "Cooling Temperature Setting (°C)", type: "number", default: 8, step: 0.1 }
+            ],
+            validate: (data) => {
+                let issues = [];
+                if (data.coolTemp >= 10) issues.push("[TEMP ERROR] Cooling system fluctuation detected (Target: <10°C).");
+                
+                return {
+                    passed: issues.length === 0,
+                    errors: issues,
+                    processImpact: "Uncontrolled over-fermentation and secondary microbial growth phase.",
+                    productImpact: "Excessive sour profiles and unstable product body/viscosity."
+                };
+            }
+        },
+        separator: {
+            title: "Centrifugal Separator",
+            fields: [
+                { id: "rpm", label: "Bowl Rotation Speed (RPM)", type: "number", default: 5500 }
+            ],
+            validate: (data) => {
+                let issues = [];
+                if (data.rpm < 5500) issues.push("[SPEED ERROR] Low separation mechanical efficiency (Target: 5500 RPM).");
+                
+                return {
+                    passed: issues.length === 0,
+                    errors: issues,
+                    processImpact: "Poor whey separation metrics.",
+                    productImpact: "Inconsistent Greek yogurt density and runny body textures."
+                };
+            }
+        }
+    };
+
+    // 2. Generate input forms dynamically based on drop-down choice
+    function updateDynamicFields() {
+        const eqType = document.getElementById("equipment").value;
+        const targetDiv = document.getElementById("dynamic-inputs");
+        const schema = equipmentRules[eqType];
+        
+        targetDiv.innerHTML = ""; // clear old UI fields
+        
+        schema.fields.forEach(field => {
+            const group = document.createElement("div");
+            group.className = "form-group";
+            
+            const label = document.createElement("label");
+            label.innerText = field.label;
+            
+            const input = document.createElement("input");
+            input.type = field.type;
+            input.id = field.id;
+            input.value = field.default;
+            if(field.step) input.step = field.step;
+            
+            group.appendChild(label);
+            group.appendChild(input);
+            targetDiv.appendChild(group);
+        });
+    }
+
+    // 3. Evaluate inputted values against rules, fire alerts, and update HTML table
+    function evaluateConditions() {
+        const eqType = document.getElementById("equipment").value;
+        const schema = equipmentRules[eqType];
+        
+        // Collect UI values dynamically
+        let collectedData = {};
+        schema.fields.forEach(field => {
+            collectedData[field.id] = parseFloat(document.getElementById(field.id).value);
+        });
+
+        // Run validation rules engine
+        const report = schema.validate(collectedData);
+
+        // UI Reset
+        document.getElementById("alert-pass").style.display = "none";
+        document.getElementById("alert-fail-critical").style.display = "none";
+        document.getElementById("impact-analysis").style.display = "none";
+
+        let statusBadge = "";
+        let actionTaken = "";
+
+        if (report.passed) {
+            document.getElementById("alert-pass").style.display = "block";
+            statusBadge = `<span class="badge badge-pass">Optimal</span>`;
+            actionTaken = "None. Batch approved to advance to next phase.";
+        } else {
+            document.getElementById("alert-fail-critical").style.display = "block";
+            document.getElementById("impact-analysis").style.display = "block";
+            
+            // Format dynamic text fields inside warning panels
+            document.getElementById("process-impact").innerText = report.processImpact;
+            document.getElementById("product-impact").innerText = report.productImpact;
+            
+            statusBadge = `<span class="badge badge-fail">Fails Window</span>`;
+            actionTaken = `🚨 Process Hold! ${report.errors.join(' ')}`;
+        }
+
+        // Add execution metrics directly to historical log table
+        const tableBody = document.getElementById("log-table").getElementsByTagName("tbody")[0];
+        const newRow = tableBody.insertRow(0); // Insert newest at top
+
+        const timestamp = new Date().toLocaleTimeString();
+        
+        // Formulate readable parameter snapshot string
+        let paramStrings = [];
+        for (let key in collectedData) {
+            paramStrings.push(`${key.toUpperCase()}: ${collectedData[key]}`);
+        }
+
+        newRow.innerHTML = `
+            <td>${timestamp}</td>
+            <td><strong>${schema.title}</strong></td>
+            <td><code>${paramStrings.join(', ')}</code></td>
+            <td>${statusBadge}</td>
+            <td style="color: ${report.passed ? '#27ae60' : '#c0392b'}; font-weight:500;">${actionTaken}</td>
+        `;
+    }
+
+    // Initialize UI on startup loading
+    window.onload = updateDynamicFields;
+</script>
+
+</body>
+</html>
